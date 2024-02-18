@@ -1,17 +1,33 @@
 package server
 
 import (
+	"log"
 	"net"
+
+	"github.com/google/uuid"
 )
 
 type server struct {
 	address     string
 	port        string
-	connections []*net.Conn
+	connections map[uuid.UUID]*net.Conn
 }
 
 func (s *server) AddConn(conn *net.Conn) {
-	s.connections = append(s.connections, conn)
+	id := uuid.New()
+	s.connections[id] = conn
+}
+
+func (s *server) AcceptConnections(l net.Listener) {
+	for {
+		conn, err := l.Accept()
+
+		if err != nil {
+			log.Print(err)
+		}
+
+		s.AddConn(&conn)
+	}
 }
 
 func (s server) Run() {
@@ -20,9 +36,7 @@ func (s server) Run() {
 		panic(err)
 	}
 
-	for {
-		l.Accept()
-	}
+	s.AcceptConnections(l)
 }
 
 func NewServer(address string, port string) *server {
