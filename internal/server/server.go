@@ -13,12 +13,12 @@ type server struct {
 	connections map[uuid.UUID]*net.Conn
 }
 
-func (s *server) AddConn(conn *net.Conn) {
+func (s *server) addConn(conn *net.Conn) {
 	id := uuid.New()
 	s.connections[id] = conn
 }
 
-func (s *server) AcceptConnections(l net.Listener) {
+func (s *server) acceptConncections(l net.Listener) {
 	for {
 		conn, err := l.Accept()
 
@@ -26,7 +26,7 @@ func (s *server) AcceptConnections(l net.Listener) {
 			log.Print(err)
 		}
 
-		s.AddConn(&conn)
+		s.addConn(&conn)
 	}
 }
 
@@ -37,7 +37,7 @@ func (s server) Run() {
 	}
 	log.Printf("listening at address %v on port %v", s.address, s.port)
 
-	s.AcceptConnections(l)
+	s.acceptConncections(l)
 }
 
 func NewServer(address string, port string) *server {
