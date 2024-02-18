@@ -21,12 +21,12 @@ func (s *server) addConn(conn *net.Conn) {
 func (s *server) acceptConncections(l net.Listener) {
 	for {
 		conn, err := l.Accept()
-
 		if err != nil {
+			// TODO: figure out what to do for connection errors
 			log.Print(err)
+		} else {
+			s.addConn(&conn)
 		}
-
-		s.addConn(&conn)
 	}
 }
 
