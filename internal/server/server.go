@@ -24,8 +24,10 @@ func (s *server) addClient(c client) {
 }
 
 func (s *server) removeClient(c client) {
+	id := c.id.String()
 	delete(s.clients, c.id)
 	c.conn.Close()
+	log.Printf("client id %v disconnected\n", id)
 }
 
 func (s *server) acceptConncections(l net.Listener) {
@@ -67,7 +69,7 @@ func (s *server) handleConn(c client) {
 			s.removeClient(c)
 			break
 		} else {
-			log.Println(message)
+			log.Print(message)
 			s.broadcastMessage(c.id, message)
 		}
 	}
