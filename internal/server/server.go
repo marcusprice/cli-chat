@@ -53,7 +53,15 @@ func (s *server) handleConn(c client) {
 	for {
 		message, err := reader.ReadString('\n')
 		if err != nil {
-			log.Print(err)
+			if err.Error() != "EOF" {
+				// EOF gets returned when no more input is available (in other
+				// words the conn closed). If not EOF log the error
+				log.Println(err)
+			}
+
+			delete(s.clients, c.id)
+			c.conn.Close()
+			break
 		} else {
 			log.Println(message)
 			s.broadcastMessage(c.id, message)
