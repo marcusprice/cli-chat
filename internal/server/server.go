@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"log"
 	"net"
 
@@ -8,14 +9,18 @@ import (
 )
 
 type server struct {
-	address     string
-	port        string
-	connections map[uuid.UUID]*net.Conn
+	address string
+	port    string
+	clients map[uuid.UUID]client
 }
 
-func (s *server) addConn(conn *net.Conn) {
-	id := uuid.New()
-	s.connections[id] = conn
+type client struct {
+	id   uuid.UUID
+	conn net.Conn
+}
+
+func (s *server) addClient(c client) {
+	s.clients[c.id] = c
 }
 
 func (s *server) acceptConncections(l net.Listener) {
@@ -25,7 +30,33 @@ func (s *server) acceptConncections(l net.Listener) {
 			// TODO: figure out what to do for connection errors
 			log.Print(err)
 		} else {
-			s.addConn(&conn)
+			id := uuid.New()
+			client := client{id: id, conn: conn}
+
+			s.addClient(client)
+			go s.handleConn(client)
+		}
+	}
+}
+
+func (s *server) broadcastMessage(senderId uuid.UUID, message string) {
+	for id, client := range s.clients {
+		if senderId != id {
+			client.conn.Write([]byte(message))
+		}
+	}
+}
+
+func (s *server) handleConn(c client) {
+	reader := bufio.NewReader(c.conn)
+
+	for {
+		message, err := reader.ReadString('\n')
+		if err != nil {
+			log.Print(err)
+		} else {
+			log.Println(message)
+			s.broadcastMessage(c.id, message)
 		}
 	}
 }
@@ -41,5 +72,9 @@ func (s server) Run() {
 }
 
 func NewServer(address string, port string) *server {
-	return &server{address: address, port: port}
+	return &server{
+		address: address,
+		port:    port,
+		clients: make(map[uuid.UUID]client),
+	}
 }
