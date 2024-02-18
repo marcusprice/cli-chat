@@ -35,10 +35,11 @@ func (s server) Run() {
 	if err != nil {
 		panic(err)
 	}
+	log.Printf("listening at address %v on port %v", s.address, s.port)
 
 	s.AcceptConnections(l)
 }
 
 func NewServer(address string, port string) *server {
-	return &server{}
+	return &server{address: address, port: port}
 }
