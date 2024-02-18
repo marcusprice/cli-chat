@@ -23,6 +23,11 @@ func (s *server) addClient(c client) {
 	s.clients[c.id] = c
 }
 
+func (s *server) removeClient(c client) {
+	delete(s.clients, c.id)
+	c.conn.Close()
+}
+
 func (s *server) acceptConncections(l net.Listener) {
 	for {
 		conn, err := l.Accept()
@@ -59,8 +64,7 @@ func (s *server) handleConn(c client) {
 				log.Println(err)
 			}
 
-			delete(s.clients, c.id)
-			c.conn.Close()
+			s.removeClient(c)
 			break
 		} else {
 			log.Println(message)
