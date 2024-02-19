@@ -8,26 +8,25 @@ import (
 	"github.com/google/uuid"
 )
 
+type client struct {
+	id   uuid.UUID
+	conn net.Conn
+}
+
 type server struct {
 	address string
 	port    string
 	clients map[uuid.UUID]client
 }
 
-type client struct {
-	id   uuid.UUID
-	conn net.Conn
-}
+func (s server) Run() {
+	l, err := net.Listen("tcp", s.address+":"+s.port)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("listening at address %v on port %v", s.address, s.port)
 
-func (s *server) addClient(c client) {
-	s.clients[c.id] = c
-}
-
-func (s *server) removeClient(c client) {
-	id := c.id.String()
-	delete(s.clients, c.id)
-	c.conn.Close()
-	log.Printf("client id %v disconnected\n", id)
+	s.acceptConncections(l)
 }
 
 func (s *server) acceptConncections(l net.Listener) {
@@ -46,12 +45,15 @@ func (s *server) acceptConncections(l net.Listener) {
 	}
 }
 
-func (s *server) broadcastMessage(senderId uuid.UUID, message string) {
-	for id, client := range s.clients {
-		if senderId != id {
-			client.conn.Write([]byte(message))
-		}
-	}
+func (s *server) addClient(c client) {
+	s.clients[c.id] = c
+}
+
+func (s *server) removeClient(c client) {
+	id := c.id.String()
+	delete(s.clients, c.id)
+	c.conn.Close()
+	log.Printf("client id %v disconnected\n", id)
 }
 
 func (s *server) handleConn(c client) {
@@ -75,14 +77,12 @@ func (s *server) handleConn(c client) {
 	}
 }
 
-func (s server) Run() {
-	l, err := net.Listen("tcp", s.address+":"+s.port)
-	if err != nil {
-		panic(err)
+func (s *server) broadcastMessage(senderId uuid.UUID, message string) {
+	for id, client := range s.clients {
+		if senderId != id {
+			client.conn.Write([]byte(message))
+		}
 	}
-	log.Printf("listening at address %v on port %v", s.address, s.port)
-
-	s.acceptConncections(l)
 }
 
 func NewServer(address string, port string) *server {
