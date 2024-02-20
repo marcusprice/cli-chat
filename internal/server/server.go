@@ -19,19 +19,19 @@ type server struct {
 	clients map[uuid.UUID]client
 }
 
-func (s server) Run() {
-	l, err := net.Listen("tcp", s.address+":"+s.port)
+func (server server) Run() {
+	listener, err := net.Listen("tcp", server.address+":"+server.port)
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("listening at address %v on port %v", s.address, s.port)
+	log.Printf("listening at address %v on port %v", server.address, server.port)
 
-	s.acceptConncections(l)
+	server.acceptConncections(listener)
 }
 
-func (s *server) acceptConncections(l net.Listener) {
+func (server *server) acceptConncections(listener net.Listener) {
 	for {
-		conn, err := l.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			// TODO: figure out what to do for connection errors
 			log.Print(err)
@@ -39,25 +39,25 @@ func (s *server) acceptConncections(l net.Listener) {
 			id := uuid.New()
 			client := client{id: id, conn: conn}
 
-			s.addClient(client)
-			go s.handleConn(client)
+			server.addClient(client)
+			go server.handleConn(client)
 		}
 	}
 }
 
-func (s *server) addClient(c client) {
-	s.clients[c.id] = c
+func (server *server) addClient(client client) {
+	server.clients[client.id] = client
 }
 
-func (s *server) removeClient(c client) {
-	id := c.id.String()
-	delete(s.clients, c.id)
-	c.conn.Close()
+func (server *server) removeClient(client client) {
+	id := client.id.String()
+	delete(server.clients, client.id)
+	client.conn.Close()
 	log.Printf("client id %v disconnected\n", id)
 }
 
-func (s *server) handleConn(c client) {
-	reader := bufio.NewReader(c.conn)
+func (server *server) handleConn(client client) {
+	reader := bufio.NewReader(client.conn)
 
 	for {
 		message, err := reader.ReadString('\n')
@@ -68,17 +68,17 @@ func (s *server) handleConn(c client) {
 				log.Println(err)
 			}
 
-			s.removeClient(c)
+			server.removeClient(client)
 			break
 		} else {
 			log.Print(message)
-			s.broadcastMessage(c.id, message)
+			server.broadcastMessage(client.id, message)
 		}
 	}
 }
 
-func (s *server) broadcastMessage(senderId uuid.UUID, message string) {
-	for id, client := range s.clients {
+func (server *server) broadcastMessage(senderId uuid.UUID, message string) {
+	for id, client := range server.clients {
 		if senderId != id {
 			client.conn.Write([]byte(message))
 		}
