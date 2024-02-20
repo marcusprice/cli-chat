@@ -71,8 +71,14 @@ func (server *server) handleConn(client client) {
 			server.removeClient(client)
 			break
 		} else {
-			log.Print(message)
-			server.broadcastMessage(client.id, message)
+			if message[0] == '\\' {
+				// running command
+				log.Printf("command: %v", message)
+				client.conn.Write([]byte("Command executed successfully 👍\n"))
+			} else {
+				log.Print(message)
+				server.broadcastMessage(client.id, message)
+			}
 		}
 	}
 }
